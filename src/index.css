@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@custom-variant light (&:is(html[data-theme="light"] *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* App shell — dark defaults */
+  --color-piano-bg: #0f0f14;
+  --color-piano-surface: #1a1a24;
+  --color-piano-accent: #6366f1;
+  --color-piano-highlight: #fbbf24;
+  --color-piano-pressed: #818cf8;
+  --color-piano-text: #e2e8f0;
+  --color-piano-text-muted: #94a3b8;
+  --color-piano-text-subtle: #64748b;
+  --color-piano-border: rgb(255 255 255 / 0.08);
+  --color-piano-border-hover: rgb(255 255 255 / 0.14);
+  --color-piano-ring: rgb(255 255 255 / 0.05);
+  --color-piano-progress-track: #1e293b;
+
+  /* Piano keys — dark mode */
+  --color-key-white-from: #f1f5f9;
+  --color-key-white-to: #e2e8f0;
+  --color-key-white-border: rgb(203 213 225 / 0.45);
+  --color-key-white-label: #64748b;
+  --color-key-white-badge-bg: rgb(203 213 225 / 0.6);
+  --color-key-white-badge-text: #475569;
+  --shadow-key-white: 0 4px 14px rgb(0 0 0 / 0.35), 0 1px 2px rgb(0 0 0 / 0.2);
+
+  --color-key-black-from: #334155;
+  --color-key-black-to: #020617;
+  --color-key-black-border: rgb(15 23 42 / 0.5);
+  --color-key-black-label: #94a3b8;
+  --color-key-black-badge-bg: rgb(30 41 59 / 0.8);
+  --color-key-black-badge-text: #cbd5e1;
+  --shadow-key-black: 0 6px 16px rgb(0 0 0 / 0.45);
+
+  /* Difficulty badges */
+  --color-badge-easy-bg: rgb(16 185 129 / 0.15);
+  --color-badge-easy-text: #6ee7b7;
+  --color-badge-easy-ring: rgb(16 185 129 / 0.3);
+  --color-badge-medium-bg: rgb(245 158 11 / 0.15);
+  --color-badge-medium-text: #fcd34d;
+  --color-badge-medium-ring: rgb(245 158 11 / 0.3);
+  --color-badge-hard-bg: rgb(244 63 94 / 0.15);
+  --color-badge-hard-text: #fda4af;
+  --color-badge-hard-ring: rgb(244 63 94 / 0.3);
+}
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-piano-bg: #e4e7ec;
+  --color-piano-surface: #ffffff;
+  --color-piano-accent: #4f46e5;
+  --color-piano-highlight: #d97706;
+  --color-piano-pressed: #6366f1;
+  --color-piano-text: #1e293b;
+  --color-piano-text-muted: #64748b;
+  --color-piano-text-subtle: #94a3b8;
+  --color-piano-border: rgb(148 163 184 / 0.45);
+  --color-piano-border-hover: rgb(100 116 139 / 0.55);
+  --color-piano-ring: rgb(148 163 184 / 0.3);
+  --color-piano-progress-track: #cbd5e1;
+
+  /* Cream key faces, visible borders, and drop shadows for contrast on light page bg */
+  --color-key-white-from: #fdfbf7;
+  --color-key-white-to: #efe8dc;
+  --color-key-white-border: rgb(120 113 108 / 0.55);
+  --color-key-white-label: #57534e;
+  --color-key-white-badge-bg: rgb(214 211 209 / 0.75);
+  --color-key-white-badge-text: #44403c;
+  --shadow-key-white:
+    0 2px 0 rgb(120 113 108 / 0.25),
+    0 6px 16px rgb(15 23 42 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
+
+  --color-key-black-from: #3f3f46;
+  --color-key-black-to: #18181b;
+  --color-key-black-border: rgb(24 24 27 / 0.65);
+  --color-key-black-label: #a1a1aa;
+  --color-key-black-badge-bg: rgb(39 39 42 / 0.9);
+  --color-key-black-badge-text: #d4d4d8;
+  --shadow-key-black: 0 6px 14px rgb(15 23 42 / 0.28);
+
+  --color-badge-easy-bg: rgb(16 185 129 / 0.12);
+  --color-badge-easy-text: #047857;
+  --color-badge-easy-ring: rgb(16 185 129 / 0.35);
+  --color-badge-medium-bg: rgb(245 158 11 / 0.12);
+  --color-badge-medium-text: #b45309;
+  --color-badge-medium-ring: rgb(245 158 11 / 0.35);
+  --color-badge-hard-bg: rgb(244 63 94 / 0.12);
+  --color-badge-hard-text: #be123c;
+  --color-badge-hard-ring: rgb(244 63 94 / 0.35);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-piano-bg);
+  color: var(--color-piano-text);
+  -webkit-font-smoothing: antialiased;
+}

@@ -1,0 +1,64 @@
+---
+description: Piano app domain rules — key mapping, 
+  audio, songs, and UI behaviour
+alwaysApply: true
+---
+
+## Piano domain conventions
+
+### Key mapping
+- QWERTY row maps to white keys starting C4
+- Map: A=C4, S=D4, D=E4, F=F4, G=G4, H=A4, 
+  J=B4, K=C5
+- Black keys on W E T Y U row
+- Key names always use scientific notation: 
+  "C4" not "middle C"
+- Key map lives in src/audio/keyMap.ts — 
+  single source of truth
+
+### Audio
+- Tone.js must not initialise until first 
+  user gesture — wrap in Tone.start()
+- Use Tone.Sampler not oscillators — 
+  samples sound like a real piano
+- Sampler must handle note release — 
+  keydown triggers attack, keyup triggers release
+- No audio state in React state — 
+  audio lives in a ref or module singleton
+
+### Song follow-along
+- Songs are MIDI files in public/songs/
+- Parse with @tonejs/midi on load
+- Highlight = add CSS class to key component, 
+  never manipulate DOM directly
+- "Wait for correct key" mode must 
+  pause Transport until right key pressed
+- Song metadata (title, difficulty, tempo) 
+  lives in src/songs/index.ts
+
+### UI behaviour
+- Pressed keys show visual depression 
+  (transform + shadow via Framer Motion)
+- Active highlights use a distinct colour 
+  from pressed colour — never same shade
+- On-screen keys must be clickable/tappable 
+  as well as keyboard-driven
+- Mobile: show on-screen keyboard 
+  if no physical keyboard detected
+
+## Agent behaviour
+- Spawn subagents for independent workstreams 
+  to keep each context window focused
+- These are naturally parallel in this project:
+  - Audio engine (Tone.js setup, sampler, 
+    key triggers)
+  - Piano UI components (keyboard layout, 
+    key press animations)
+  - Song system (MIDI parser, song metadata, 
+    player logic)
+  - Hooks and state (useKeyboard, useSong, 
+    useAudio)
+- Do not put audio logic in React components 
+  — keep concerns separated so subagents 
+  can work independently without conflicts
+- Each subagent should own one folder in src/

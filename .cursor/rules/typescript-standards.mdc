@@ -1,0 +1,43 @@
+---
+description: TypeScript and code quality standards 
+  for all source files
+globs: "src/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+## TypeScript standards
+
+### Types
+- Never use `any` — use `unknown` and narrow, 
+  or define a proper interface/type
+- All function parameters and return values 
+  must be explicitly typed
+- Prefer `interface` for object shapes, 
+  `type` for unions and primitives
+- Export all types from `src/types/index.ts`
+
+### Functions
+- Every function needs a JSDoc comment:
+  /**
+   * Brief description of what this does.
+   * @param note - The note name e.g. "C4"
+   * @returns The frequency in Hz
+   */
+- Arrow functions for callbacks and hooks
+- Named function declarations for components 
+  and top-level utilities
+
+### Imports
+- Named imports only — no default imports 
+  except for React
+- Group imports: React → third-party → 
+  internal → types
+- No barrel files unless the folder has 
+  3+ exports
+
+### Error handling
+- Never swallow errors silently
+- Audio operations must be wrapped in 
+  try/catch with user-facing feedback
+- Use Result types or throw — 
+  never return null for error states
