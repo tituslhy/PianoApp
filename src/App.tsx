@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 
+import { AudioUnlockOverlay } from './components/AudioUnlockOverlay';
 import { Header } from './components/Header';
 import { Keyboard } from './components/Keyboard';
 import { PlaybackControls } from './components/PlaybackControls';
@@ -42,16 +43,10 @@ export function App() {
 
   return (
     <div className="flex min-h-full flex-col items-center gap-8 px-4 py-8 sm:px-6 sm:py-12">
+      <AudioUnlockOverlay audioState={audioState} onUnlock={() => void ensureAudioReady()} />
+
       <Header />
 
-      {audioState === 'loading' ? (
-        <p className="text-sm text-piano-accent light:text-indigo-600">Loading piano samples…</p>
-      ) : null}
-      {audioState === 'error' ? (
-        <p className="text-sm text-rose-400 light:text-rose-600">
-          Audio failed to load. Click a key to retry.
-        </p>
-      ) : null}
       {songLoadError ? (
         <p className="text-sm text-rose-400 light:text-rose-600">{songLoadError}</p>
       ) : null}

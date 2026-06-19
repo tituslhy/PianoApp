@@ -52,7 +52,28 @@ function createSampler(): Tone.Sampler {
 }
 
 /**
- * Initializes Tone.js and loads piano samples. Must be called from a user gesture.
+ * Builds a brand-new native AudioContext and resumes it, synchronously, in the caller's
+ * call stack. Merely importing "tone" eagerly creates its own default AudioContext at
+ * module-load time (`Tone.getContext()` runs at the top of tone's index module) — long
+ * before any user gesture. iOS Safari can never unlock a context built that early, even if
+ * `.resume()` is later called from inside a real tap, so we discard Tone's default context
+ * and swap in one constructed right here, inside the gesture.
+ * @returns Promise that resolves once the fresh context is running.
+ */
+function unlockNativeAudioContext(): Promise<void> {
+  const AudioContextCtor =
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  const nativeContext = new AudioContextCtor();
+  Tone.setContext(nativeContext, true);
+  return nativeContext.resume();
+}
+
+/**
+ * Initializes Tone.js and loads piano samples. Must be called synchronously from a user
+ * gesture handler (touchend/click) — the native AudioContext is created and resumed here,
+ * before any `await`, so both stay tied to that gesture; everything after the first `await`
+ * (sample fetch/decode) can safely run later.
  * Safe to call multiple times — subsequent calls return the same promise.
  * @returns Promise that resolves when samples are loaded and ready to play.
  */
@@ -65,11 +86,13 @@ export function initAudio(): Promise<void> {
     return initPromise;
   }
 
+  const resumePromise = unlockNativeAudioContext();
+
   setEngineState('loading');
 
   initPromise = (async () => {
     try {
-      await Tone.start();
+      await resumePromise;
       sampler = createSampler();
       await Tone.loaded();
       setEngineState('ready');

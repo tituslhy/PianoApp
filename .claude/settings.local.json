@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -sI \"https://tonejs.github.io/audio/salamander/C4.mp3\")",
+      "Bash(curl -sI -H \"Range: bytes=0-100\" \"https://tonejs.github.io/audio/salamander/C4.mp3\")",
+      "Bash(npm run *)",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_close",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "Bash(rm -f overlay-initial.png overlay-check2.png after-tap.png)",
+      "Bash(rm -rf .playwright-mcp)",
+      "Bash(pkill -f \"vite --port 5180\")",
+      "Bash(pkill -f \"node_modules/.bin/vite\")",
+      "Bash(lsof -nP -iTCP -sTCP:LISTEN)"
+    ]
+  }
+}
