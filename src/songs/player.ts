@@ -105,7 +105,7 @@ export class SongPlayer {
         return;
       }
 
-      Tone.Transport.start();
+      Tone.getTransport().start();
       return;
     }
 
@@ -114,7 +114,7 @@ export class SongPlayer {
     this.clearScheduledEvents();
     this.schedulePlayback();
     this.syncState();
-    Tone.Transport.start();
+    Tone.getTransport().start();
   }
 
   /**
@@ -125,7 +125,7 @@ export class SongPlayer {
       return;
     }
 
-    Tone.Transport.pause();
+    Tone.getTransport().pause();
     this.isPaused = true;
     this.isPlaying = false;
     this.syncState();
@@ -135,8 +135,8 @@ export class SongPlayer {
    * Stops playback, clears scheduled events, and resets position.
    */
   stop(): void {
-    Tone.Transport.stop();
-    Tone.Transport.cancel();
+    Tone.getTransport().stop();
+    Tone.getTransport().cancel();
     this.clearScheduledEvents();
     this.isPlaying = false;
     this.isPaused = false;
@@ -200,7 +200,7 @@ export class SongPlayer {
     }
 
     if (this.isPlaying) {
-      Tone.Transport.start();
+      Tone.getTransport().start();
     }
 
     this.syncState({ highlightedNote: null });
@@ -216,28 +216,28 @@ export class SongPlayer {
   }
 
   /**
-   * Schedules note highlights on Tone.Transport.
+   * Schedules note highlights on the Tone.js Transport.
    */
   private schedulePlayback(): void {
     if (!this.parsedSong) {
       return;
     }
 
-    Tone.Transport.bpm.value = this.parsedSong.metadata.tempo;
-    Tone.Transport.seconds = 0;
+    Tone.getTransport().bpm.value = this.parsedSong.metadata.tempo;
+    Tone.getTransport().seconds = 0;
 
     const notes = this.parsedSong.notes;
 
     for (let index = 0; index < notes.length; index += 1) {
       const note = notes[index];
-      const eventId = Tone.Transport.schedule(() => {
+      const eventId = Tone.getTransport().schedule(() => {
         this.handleNoteReached(note, index);
       }, note.time);
 
       this.scheduledEventIds.push(eventId);
     }
 
-    const completeId = Tone.Transport.schedule(() => {
+    const completeId = Tone.getTransport().schedule(() => {
       if (!this.waitForCorrectKey || this.waitingForNotes.size === 0) {
         this.finishPlayback();
       }
@@ -257,7 +257,7 @@ export class SongPlayer {
     this.emitProgress();
 
     if (this.waitForCorrectKey) {
-      Tone.Transport.pause();
+      Tone.getTransport().pause();
       this.waitingForNotes.add(note.note);
       this.waitingForNote = note.note;
       this.syncState({ highlightedNote: note.note });
@@ -311,7 +311,7 @@ export class SongPlayer {
    */
   private clearScheduledEvents(): void {
     for (const eventId of this.scheduledEventIds) {
-      Tone.Transport.clear(eventId);
+      Tone.getTransport().clear(eventId);
     }
     this.scheduledEventIds = [];
   }
