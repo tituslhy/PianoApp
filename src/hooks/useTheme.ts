@@ -14,7 +14,7 @@ export interface UseThemeResult {
 }
 
 /**
- * Reads the stored theme or falls back to the OS colour-scheme preference.
+ * Reads the stored theme, defaulting to dark when storage is empty.
  * @returns Resolved theme for first visit or when storage is empty.
  */
 export function resolveTheme(): Theme {
@@ -27,9 +27,7 @@ export function resolveTheme(): Theme {
     return stored;
   }
 
-  return window.matchMedia('(prefers-color-scheme: light)').matches
-    ? 'light'
-    : 'dark';
+  return 'dark';
 }
 
 /**
