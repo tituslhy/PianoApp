@@ -15,7 +15,11 @@
       "Bash(rm -rf .playwright-mcp)",
       "Bash(pkill -f \"vite --port 5180\")",
       "Bash(pkill -f \"node_modules/.bin/vite\")",
-      "Bash(lsof -nP -iTCP -sTCP:LISTEN)"
+      "Bash(lsof -nP -iTCP -sTCP:LISTEN)",
+      "Bash(xargs ls -la)",
+      "mcp__plugin_playwright_playwright__browser_run_code_unsafe",
+      "Bash(npx tsc *)",
+      "Bash(pkill -f \"vite\")"
     ]
   }
 }

@@ -31,9 +31,9 @@ export function PianoKey({
   const isHighlighted = visualState === 'highlighted';
 
   const whiteBase =
-    'relative flex h-44 w-11 flex-col items-center justify-end rounded-b-lg border bg-gradient-to-b from-key-white-from to-key-white-to border-key-white-border pb-2 shadow-[var(--shadow-key-white)] select-none touch-none sm:h-52 sm:w-12';
+    'relative flex h-44 w-11 flex-col items-center justify-end rounded-b-lg border bg-gradient-to-b from-key-white-from to-key-white-to border-key-white-border pb-2 shadow-[var(--shadow-key-white)] select-none touch-pan-x sm:h-52 sm:w-12';
   const blackBase =
-    'relative z-10 flex h-28 w-7 flex-col items-center justify-end rounded-b-md border bg-gradient-to-b from-key-black-from to-key-black-to border-key-black-border pb-1.5 shadow-[var(--shadow-key-black)] select-none touch-none sm:h-32 sm:w-8';
+    'relative z-10 flex h-28 w-7 flex-col items-center justify-end rounded-b-md border bg-gradient-to-b from-key-black-from to-key-black-to border-key-black-border pb-1.5 shadow-[var(--shadow-key-black)] select-none touch-pan-x sm:h-32 sm:w-8';
 
   const pressedWhite = 'from-indigo-200 to-indigo-300 shadow-inner translate-y-0.5 light:from-indigo-300 light:to-indigo-400';
   const pressedBlack = 'from-indigo-900 to-indigo-950 shadow-inner translate-y-0.5';
