@@ -24,7 +24,11 @@
       "Bash(curl -s \"http://localhost:5183/src/songs/player.ts\")",
       "Bash(lsof -ti:5183)",
       "Bash(xargs kill)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(node generate-songs.mjs)",
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "mcp__plugin_playwright_playwright__browser_press_key",
+      "Bash(rm -f iphone-390.png ipad-1024.png dark-highlight.png dark-highlight-fixed.png light-highlight.png light-next-highlight.png desktop-1920.png)"
     ]
   }
 }

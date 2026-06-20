@@ -1,9 +1,12 @@
+import type { CSSProperties } from 'react';
+
 import type {
   KeyboardInteractionHandlers,
   NoteName,
   PianoKeyDefinition,
 } from '../types';
 
+import { useKeyboardWidth } from '../hooks/useKeyboardWidth';
 import { PianoKey } from './PianoKey';
 
 /** Props for the full on-screen piano keyboard. */
@@ -71,11 +74,18 @@ export function Keyboard({
 }: KeyboardProps) {
   const whiteKeys = keys.filter((key) => !key.isBlack);
   const blackKeys = keys.filter((key) => key.isBlack);
+  const { containerRef, whiteKeyWidth } = useKeyboardWidth();
 
   return (
-    <div className="w-full overflow-x-auto pb-2">
-      <div className="mx-auto w-max">
-        <div className="relative flex rounded-xl bg-piano-surface/80 p-4 shadow-2xl ring-1 ring-piano-ring light:shadow-lg light:shadow-slate-400/20">
+    <div ref={containerRef} className="w-full overflow-x-auto pb-2">
+      <div className="mx-auto w-fit">
+        <div
+          className="relative flex rounded-xl bg-piano-surface/80 p-4 shadow-2xl ring-1 ring-piano-ring light:shadow-lg light:shadow-slate-400/20"
+          style={{
+            '--key-w': `${whiteKeyWidth}px`,
+            '--key-h': `${Math.min(208, Math.max(176, Math.round(whiteKeyWidth * 4.1)))}px`,
+          } as CSSProperties}
+        >
         <div className="flex">
           {whiteKeys.map((key) => (
             <PianoKey
