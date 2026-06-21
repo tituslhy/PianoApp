@@ -16,6 +16,13 @@ export const SONGS: SongMetadata[] = [
     tempo: 72,
     midiPath: '/songs/fur-elise.mid',
   },
+  {
+    id: 'no-batidao',
+    title: 'No Batidão',
+    difficulty: 'hard',
+    tempo: 130,
+    midiPath: '/songs/no-batidao.mid',
+  },
 ];
 
 /**
