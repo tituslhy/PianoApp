@@ -17,7 +17,8 @@ export function App() {
     pressedNotes,
     highlightedNotes,
     mode,
-    setMode, // eslint-disable-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- wired into PlaybackControls in Task 13
+    setMode: _setMode,
     keyboardLayout,
     handlers,
     songs,
