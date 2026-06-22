@@ -41,6 +41,9 @@ function getKeyVisualState(
 /** Fraction of a white key's width that a black key sits left of the next white-key boundary. */
 const BLACK_KEY_BOUNDARY_OFFSET = 1 / 3;
 
+/** White-key width, in pixels, below which note/shortcut labels are hidden for legibility. */
+const LABEL_MIN_WIDTH = 36;
+
 /**
  * Counts how many white keys precede each key in layout order.
  * @param keys - Ordered piano key definitions.
@@ -75,6 +78,7 @@ export function Keyboard({
   const blackKeys = keys.filter((key) => key.isBlack);
   const whiteKeysBeforeByNote = countWhiteKeysBefore(keys);
   const { containerRef, whiteKeyWidth } = useKeyboardWidth(whiteKeys.length);
+  const showLabels = whiteKeyWidth >= LABEL_MIN_WIDTH;
 
   return (
     <div ref={containerRef} className="w-full overflow-x-auto pb-2">
@@ -93,6 +97,7 @@ export function Keyboard({
               note={key.note}
               isBlack={false}
               keyboardKey={key.keyboardKey}
+              showLabels={showLabels}
               visualState={getKeyVisualState(
                 key.note,
                 pressedNotes,
@@ -119,6 +124,7 @@ export function Keyboard({
                   note={key.note}
                   isBlack
                   keyboardKey={key.keyboardKey}
+                  showLabels={showLabels}
                   visualState={getKeyVisualState(
                     key.note,
                     pressedNotes,
