@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { AudioUnlockOverlay } from './components/AudioUnlockOverlay';
 import { Header } from './components/Header';
 import { Keyboard } from './components/Keyboard';
+import { OctaveControl } from './components/OctaveControl';
 import { PlaybackControls } from './components/PlaybackControls';
 import { SongSelector } from './components/SongSelector';
 import { usePiano } from './hooks/usePiano';
@@ -27,6 +28,11 @@ export function App() {
     audioState,
     ensureAudioReady,
     songLoadError,
+    baseOctave,
+    canShiftOctaveDown,
+    canShiftOctaveUp,
+    shiftOctaveDown,
+    shiftOctaveUp,
   } = usePiano();
 
   /**
@@ -50,6 +56,16 @@ export function App() {
       {songLoadError ? (
         <p className="text-sm text-rose-400 light:text-rose-600">{songLoadError}</p>
       ) : null}
+
+      <div className="flex w-full max-w-2xl justify-end">
+        <OctaveControl
+          baseOctave={baseOctave}
+          canShiftDown={canShiftOctaveDown}
+          canShiftUp={canShiftOctaveUp}
+          onShiftDown={shiftOctaveDown}
+          onShiftUp={shiftOctaveUp}
+        />
+      </div>
 
       <Keyboard
         keys={keyboardLayout}
