@@ -7,6 +7,7 @@ export interface PianoKeyProps {
   note: NoteName;
   isBlack: boolean;
   keyboardKey?: string;
+  showLabels: boolean;
   visualState: KeyVisualState;
   onPointerDown: (note: NoteName) => void;
   onPointerUp: (note: NoteName) => void;
@@ -22,6 +23,7 @@ export function PianoKey({
   note,
   isBlack,
   keyboardKey,
+  showLabels,
   visualState,
   onPointerDown,
   onPointerUp,
@@ -72,14 +74,16 @@ export function PianoKey({
       onPointerLeave={() => onPointerLeave(note)}
       onPointerCancel={() => onPointerLeave(note)}
     >
-      <span
-        className={`mb-1 text-[10px] font-semibold uppercase tracking-wide ${
-          isBlack ? 'text-key-black-label' : 'text-key-white-label'
-        } ${isHighlighted ? 'text-amber-600 light:text-amber-700' : ''}`}
-      >
-        {note}
-      </span>
-      {keyboardKey ? (
+      {showLabels ? (
+        <span
+          className={`mb-1 text-[10px] font-semibold uppercase tracking-wide ${
+            isBlack ? 'text-key-black-label' : 'text-key-white-label'
+          } ${isHighlighted ? 'text-amber-600 light:text-amber-700' : ''}`}
+        >
+          {note}
+        </span>
+      ) : null}
+      {showLabels && keyboardKey ? (
         <span
           className={`rounded px-1 py-0.5 text-[10px] font-medium ${
             isBlack
