@@ -2,79 +2,82 @@ import * as Tone from 'tone';
 
 import type { Dispatch, SetStateAction } from 'react';
 
-import type { NoteName, ParsedNote, ParsedSong, SongPlaybackState } from '../types/index.ts';
+import type {
+  NoteName,
+  ParsedNote,
+  ParsedSong,
+  SongPlaybackMode,
+  SongPlaybackState,
+} from '../types/index.ts';
 
-/** Callbacks invoked during follow-along playback. */
+/** Callbacks invoked during playback. */
 export interface SongPlayerCallbacks {
-  onHighlight?: (note: NoteName) => void;
+  /** Fired when play-along mode starts sounding a note automatically. */
+  onAutoNoteStart?: (note: NoteName) => void;
+  /** Fired when play-along mode releases an automatically-sounded note. */
+  onAutoNoteEnd?: (note: NoteName) => void;
+  /** Fired in follow-along mode when the user successfully presses an expected note. */
   onNotePlayed?: (note: NoteName) => void;
+  /** Fired when the song finishes playing. */
   onComplete?: () => void;
-  onProgress?: (progress: number) => void;
 }
 
 /** Options for configuring a song player instance. */
 export interface SongPlayerOptions {
   callbacks?: SongPlayerCallbacks;
-  /** When true, playback pauses until the user presses the highlighted note. */
-  waitForCorrectKey?: boolean;
   /** Optional React state setter for playback UI integration. */
   onStateChange?: Dispatch<SetStateAction<SongPlaybackState>>;
 }
 
 const INITIAL_PLAYBACK_STATE: SongPlaybackState = {
+  mode: 'follow',
   isPlaying: false,
   isPaused: false,
   currentNoteIndex: 0,
-  highlightedNote: null,
+  highlightedNotes: [],
   progress: 0,
 };
 
 /**
- * Follow-along song player that highlights notes in time with a parsed MIDI song.
- * Supports a "wait for correct key" mode that pauses Transport until the user
- * presses the expected note.
+ * Song player that highlights notes in time with a parsed MIDI song.
+ * In follow-along mode it pauses the Transport and waits for the user to press
+ * each expected note. In play-along mode it auto-triggers and releases the
+ * sampler itself, on schedule, without pausing.
  */
 export class SongPlayer {
   private parsedSong: ParsedSong | null = null;
   private callbacks: SongPlayerCallbacks;
   private onStateChange: Dispatch<SetStateAction<SongPlaybackState>> | null;
-  private waitForCorrectKey: boolean;
+  private mode: SongPlaybackMode = 'follow';
   private currentIndex = 0;
   private isPlaying = false;
   private isPaused = false;
-  private waitingForNote: NoteName | null = null;
   private waitingForNotes = new Set<NoteName>();
+  private activeNoteCounts = new Map<NoteName, number>();
   private scheduledEventIds: number[] = [];
 
   /**
-   * Creates a song player with optional callbacks and wait mode.
-   * @param parsedSongOrOptions - Parsed song or player configuration.
-   * @param onStateChange - Optional React state setter for playback UI.
+   * Creates a song player with optional callbacks and state-change subscriber.
+   * @param options - Callbacks and React state setter for playback UI.
    */
-  constructor(
-    parsedSongOrOptions?: ParsedSong | SongPlayerOptions,
-    onStateChange?: Dispatch<SetStateAction<SongPlaybackState>>,
-  ) {
-    if (parsedSongOrOptions && 'notes' in parsedSongOrOptions) {
-      this.callbacks = {};
-      this.onStateChange = onStateChange ?? null;
-      this.waitForCorrectKey = true;
-      this.parsedSong = parsedSongOrOptions;
-      return;
-    }
-
-    const options = (parsedSongOrOptions as SongPlayerOptions | undefined) ?? {};
+  constructor(options: SongPlayerOptions = {}) {
     this.callbacks = options.callbacks ?? {};
     this.onStateChange = options.onStateChange ?? null;
-    this.waitForCorrectKey = options.waitForCorrectKey ?? false;
   }
 
   /**
-   * Enables or disables wait-for-correct-key mode.
-   * @param enabled - Whether to pause for user input on each note.
+   * Sets the playback mode. Only takes effect while playback is stopped
+   * (not playing and not paused) — callers should disable mode-switch UI
+   * while active rather than rely solely on this guard.
+   * @param mode - 'follow' to wait for keypresses, 'play' to auto-play.
    */
-  setWaitForCorrectKey(enabled: boolean): void {
-    this.waitForCorrectKey = enabled;
+  setMode(mode: SongPlaybackMode): void {
+    if (this.isPlaying || this.isPaused) {
+      return;
+    }
+
+    this.mode = mode;
+    this.syncState();
   }
 
   /**
@@ -101,7 +104,7 @@ export class SongPlayer {
       this.isPlaying = true;
       this.syncState();
 
-      if (this.waitForCorrectKey && this.waitingForNotes.size > 0) {
+      if (this.mode === 'follow' && this.waitingForNotes.size > 0) {
         return;
       }
 
@@ -118,7 +121,9 @@ export class SongPlayer {
   }
 
   /**
-   * Pauses playback while preserving the current position.
+   * Pauses playback while preserving the current position. Notes already
+   * sounding in play-along mode ring out naturally; the Transport clock
+   * itself halts, so not-yet-fired release events stay correctly queued.
    */
   pause(): void {
     if (!this.isPlaying) {
@@ -132,20 +137,20 @@ export class SongPlayer {
   }
 
   /**
-   * Stops playback, clears scheduled events, and resets position.
+   * Stops playback, clears scheduled events, force-releases any notes still
+   * sounding from play-along mode, and resets position.
    */
   stop(): void {
     Tone.getTransport().stop();
     Tone.getTransport().cancel();
     this.clearScheduledEvents();
+    this.releaseAllActiveNotes();
     this.isPlaying = false;
     this.isPaused = false;
-    this.waitingForNote = null;
     this.waitingForNotes.clear();
     this.currentIndex = 0;
     this.emitProgress();
     this.syncState({
-      highlightedNote: null,
       progress: 0,
       currentNoteIndex: 0,
     });
@@ -168,12 +173,13 @@ export class SongPlayer {
   }
 
   /**
-   * Handles a user key press during wait mode.
+   * Handles a user key press during follow-along mode. No-ops in play-along
+   * mode, since playback isn't gated on user input there.
    * @param note - The note the user pressed.
    * @returns True if the pressed note matched an expected highlight.
    */
   handleKeyPress(note: NoteName): boolean {
-    if (!this.waitForCorrectKey || this.waitingForNotes.size === 0) {
+    if (this.mode !== 'follow' || this.waitingForNotes.size === 0) {
       return false;
     }
 
@@ -185,12 +191,10 @@ export class SongPlayer {
     this.callbacks.onNotePlayed?.(note);
 
     if (this.waitingForNotes.size > 0) {
-      this.waitingForNote = [...this.waitingForNotes][0] ?? null;
-      this.syncState({ highlightedNote: this.waitingForNote });
+      this.syncState();
       return true;
     }
 
-    this.waitingForNote = null;
     this.currentIndex += 1;
     this.emitProgress();
 
@@ -203,7 +207,7 @@ export class SongPlayer {
       Tone.getTransport().start();
     }
 
-    this.syncState({ highlightedNote: null });
+    this.syncState();
     return true;
   }
 
@@ -216,7 +220,9 @@ export class SongPlayer {
   }
 
   /**
-   * Schedules note highlights on the Tone.js Transport.
+   * Schedules note events on the Tone.js Transport. Every note gets a
+   * start event; play-along mode additionally schedules a release event at
+   * `note.time + note.duration`.
    */
   private schedulePlayback(): void {
     if (!this.parsedSong) {
@@ -230,15 +236,22 @@ export class SongPlayer {
 
     for (let index = 0; index < notes.length; index += 1) {
       const note = notes[index];
-      const eventId = Tone.getTransport().schedule(() => {
+
+      const startId = Tone.getTransport().schedule(() => {
         this.handleNoteReached(note, index);
       }, note.time);
+      this.scheduledEventIds.push(startId);
 
-      this.scheduledEventIds.push(eventId);
+      if (this.mode === 'play') {
+        const endId = Tone.getTransport().schedule(() => {
+          this.handleAutoNoteEnd(note.note);
+        }, note.time + note.duration);
+        this.scheduledEventIds.push(endId);
+      }
     }
 
     const completeId = Tone.getTransport().schedule(() => {
-      if (!this.waitForCorrectKey || this.waitingForNotes.size === 0) {
+      if (this.mode === 'play' || this.waitingForNotes.size === 0) {
         this.finishPlayback();
       }
     }, this.parsedSong.duration);
@@ -247,24 +260,53 @@ export class SongPlayer {
   }
 
   /**
-   * Called when Transport reaches a note's scheduled time.
+   * Called when Transport reaches a note's scheduled start time.
    * @param note - The note that was reached.
    * @param index - Index of the note in the song.
    */
   private handleNoteReached(note: ParsedNote, index: number): void {
     this.currentIndex = index;
-    this.callbacks.onHighlight?.(note.note);
-    this.emitProgress();
 
-    if (this.waitForCorrectKey) {
-      Tone.getTransport().pause();
-      this.waitingForNotes.add(note.note);
-      this.waitingForNote = note.note;
-      this.syncState({ highlightedNote: note.note });
+    if (this.mode === 'play') {
+      this.activeNoteCounts.set(note.note, (this.activeNoteCounts.get(note.note) ?? 0) + 1);
+      this.callbacks.onAutoNoteStart?.(note.note);
+      this.emitProgress();
+      this.syncState();
       return;
     }
 
-    this.syncState({ highlightedNote: note.note });
+    this.waitingForNotes.add(note.note);
+    this.emitProgress();
+    Tone.getTransport().pause();
+    this.syncState();
+  }
+
+  /**
+   * Called when Transport reaches a play-along note's scheduled release time.
+   * @param note - Scientific notation note name being released.
+   */
+  private handleAutoNoteEnd(note: NoteName): void {
+    const count = this.activeNoteCounts.get(note) ?? 0;
+
+    if (count <= 1) {
+      this.activeNoteCounts.delete(note);
+    } else {
+      this.activeNoteCounts.set(note, count - 1);
+    }
+
+    this.callbacks.onAutoNoteEnd?.(note);
+    this.syncState();
+  }
+
+  /**
+   * Immediately releases every note still active from play-along mode.
+   * Called on stop so nothing keeps sounding after playback ends.
+   */
+  private releaseAllActiveNotes(): void {
+    for (const note of this.activeNoteCounts.keys()) {
+      this.callbacks.onAutoNoteEnd?.(note);
+    }
+    this.activeNoteCounts.clear();
   }
 
   /**
@@ -272,14 +314,21 @@ export class SongPlayer {
    */
   private emitProgress(): void {
     if (!this.parsedSong || this.parsedSong.notes.length === 0) {
-      this.callbacks.onProgress?.(0);
       this.syncState({ progress: 0, currentNoteIndex: 0 });
       return;
     }
 
     const progress = Math.min(this.currentIndex / this.parsedSong.notes.length, 1);
-    this.callbacks.onProgress?.(progress);
     this.syncState({ progress, currentNoteIndex: this.currentIndex });
+  }
+
+  /**
+   * Resolves the set of notes that should currently render as highlighted,
+   * sourced from whichever bookkeeping structure the active mode uses.
+   * @returns Highlighted note names for the active mode.
+   */
+  private currentHighlightedNotes(): NoteName[] {
+    return this.mode === 'play' ? [...this.activeNoteCounts.keys()] : [...this.waitingForNotes];
   }
 
   /**
@@ -291,18 +340,14 @@ export class SongPlayer {
       return;
     }
 
-    const resolvedHighlight =
-      partial.highlightedNote !== undefined
-        ? partial.highlightedNote
-        : this.waitingForNote;
-
     this.onStateChange((previous) => ({
       ...previous,
+      mode: this.mode,
       isPlaying: this.isPlaying,
       isPaused: this.isPaused,
       currentNoteIndex: partial.currentNoteIndex ?? this.currentIndex,
       progress: partial.progress ?? previous.progress,
-      highlightedNote: resolvedHighlight,
+      highlightedNotes: this.currentHighlightedNotes(),
     }));
   }
 
@@ -322,12 +367,10 @@ export class SongPlayer {
   private finishPlayback(): void {
     this.stop();
     this.currentIndex = this.parsedSong?.notes.length ?? 0;
-    this.callbacks.onProgress?.(1);
     this.callbacks.onComplete?.();
     this.syncState({
       progress: 1,
       currentNoteIndex: this.currentIndex,
-      highlightedNote: null,
     });
   }
 }
