@@ -7,6 +7,7 @@ export interface PianoKeyProps {
   note: NoteName;
   isBlack: boolean;
   keyboardKey?: string;
+  showLabels: boolean;
   visualState: KeyVisualState;
   onPointerDown: (note: NoteName) => void;
   onPointerUp: (note: NoteName) => void;
@@ -22,6 +23,7 @@ export function PianoKey({
   note,
   isBlack,
   keyboardKey,
+  showLabels,
   visualState,
   onPointerDown,
   onPointerUp,
@@ -29,6 +31,7 @@ export function PianoKey({
 }: PianoKeyProps) {
   const isPressed = visualState === 'pressed';
   const isHighlighted = visualState === 'highlighted';
+  const isAutoPlaying = visualState === 'auto-playing';
 
   const whiteBase =
     'relative flex h-[var(--key-h)] w-[var(--key-w)] flex-col items-center justify-end rounded-b-lg border bg-gradient-to-b border-key-white-border pb-2 shadow-[var(--shadow-key-white)] select-none touch-pan-x';
@@ -46,12 +49,18 @@ export function PianoKey({
     'ring-2 ring-amber-400/90 shadow-[0_0_20px_rgba(251,191,36,0.45)] from-amber-400 to-amber-500 light:from-amber-100 light:to-amber-200';
   const highlightBlack =
     'ring-2 ring-amber-400/90 shadow-[0_0_16px_rgba(251,191,36,0.5)] from-amber-500 to-amber-600';
+  const autoPlayingWhite =
+    'ring-2 ring-teal-400/90 shadow-[0_0_20px_rgba(45,212,191,0.45)] from-teal-400 to-teal-500 light:from-teal-100 light:to-teal-200';
+  const autoPlayingBlack =
+    'ring-2 ring-teal-400/90 shadow-[0_0_16px_rgba(45,212,191,0.5)] from-teal-500 to-teal-600';
 
   let stateClasses = isBlack ? idleBlack : idleWhite;
   if (isPressed) {
     stateClasses = isBlack ? pressedBlack : pressedWhite;
   } else if (isHighlighted) {
     stateClasses = isBlack ? highlightBlack : highlightWhite;
+  } else if (isAutoPlaying) {
+    stateClasses = isBlack ? autoPlayingBlack : autoPlayingWhite;
   }
 
   return (
@@ -72,20 +81,22 @@ export function PianoKey({
       onPointerLeave={() => onPointerLeave(note)}
       onPointerCancel={() => onPointerLeave(note)}
     >
-      <span
-        className={`mb-1 text-[10px] font-semibold uppercase tracking-wide ${
-          isBlack ? 'text-key-black-label' : 'text-key-white-label'
-        } ${isHighlighted ? 'text-amber-600 light:text-amber-700' : ''}`}
-      >
-        {note}
-      </span>
-      {keyboardKey ? (
+      {showLabels ? (
+        <span
+          className={`mb-1 text-[10px] font-semibold uppercase tracking-wide ${
+            isBlack ? 'text-key-black-label' : 'text-key-white-label'
+          } ${isHighlighted ? 'text-amber-600 light:text-amber-700' : ''} ${isAutoPlaying ? 'text-teal-600 light:text-teal-700' : ''}`}
+        >
+          {note}
+        </span>
+      ) : null}
+      {showLabels && keyboardKey ? (
         <span
           className={`rounded px-1 py-0.5 text-[10px] font-medium ${
             isBlack
               ? 'bg-key-black-badge-bg text-key-black-badge-text'
               : 'bg-key-white-badge-bg text-key-white-badge-text'
-          } ${isHighlighted ? 'bg-amber-400/30 text-amber-200 light:bg-amber-400/40 light:text-amber-800' : ''}`}
+          } ${isHighlighted ? 'bg-amber-400/30 text-amber-200 light:bg-amber-400/40 light:text-amber-800' : ''} ${isAutoPlaying ? 'bg-teal-400/30 text-teal-200 light:bg-teal-400/40 light:text-teal-800' : ''}`}
         >
           {keyboardKey}
         </span>

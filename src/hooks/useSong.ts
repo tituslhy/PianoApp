@@ -3,22 +3,37 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SONGS } from '../songs/index';
 import { loadSong } from '../songs/parser';
 import { SongPlayer } from '../songs/player';
-import type { NoteName, ParsedSong, SongMetadata, SongPlaybackState } from '../types';
+import type {
+  NoteName,
+  ParsedSong,
+  SongMetadata,
+  SongPlaybackMode,
+  SongPlaybackState,
+} from '../types';
 
 const INITIAL_PLAYBACK_STATE: SongPlaybackState = {
+  mode: 'follow',
   isPlaying: false,
   isPaused: false,
   currentNoteIndex: 0,
-  highlightedNote: null,
+  highlightedNotes: [],
   progress: 0,
 };
 
-/** Song catalogue, selection, and follow-along playback controls. */
+/** Callbacks the song player uses to drive real audio during play-along mode. */
+export interface UseSongOptions {
+  onAutoNoteStart: (note: NoteName) => void;
+  onAutoNoteEnd: (note: NoteName) => void;
+}
+
+/** Song catalogue, selection, mode, and playback controls. */
 export interface UseSongResult {
   songs: SongMetadata[];
   selectedSong: ParsedSong | null;
   selectSong: (id: string) => void;
   playbackState: SongPlaybackState;
+  mode: SongPlaybackMode;
+  setMode: (mode: SongPlaybackMode) => void;
   startPlayback: () => void;
   pausePlayback: () => void;
   stopPlayback: () => void;
@@ -27,10 +42,11 @@ export interface UseSongResult {
 }
 
 /**
- * Manages song selection, MIDI loading, and follow-along playback state.
- * @returns Song list, active song, playback controls, and note-input handler.
+ * Manages song selection, MIDI loading, mode, and playback state.
+ * @param options - Callbacks wired to the audio engine for play-along mode.
+ * @returns Song list, active song, mode, playback controls, and note-input handler.
  */
-export const useSong = (): UseSongResult => {
+export const useSong = ({ onAutoNoteStart, onAutoNoteEnd }: UseSongOptions): UseSongResult => {
   const [selectedSong, setSelectedSong] = useState<ParsedSong | null>(null);
   const [playbackState, setPlaybackState] = useState<SongPlaybackState>(
     INITIAL_PLAYBACK_STATE,
@@ -38,6 +54,7 @@ export const useSong = (): UseSongResult => {
   const [songLoadError, setSongLoadError] = useState<string | null>(null);
   const playerRef = useRef<SongPlayer | null>(null);
   const activeSelectionRef = useRef<string | null>(null);
+  const modeRef = useRef<SongPlaybackMode>('follow');
 
   /**
    * Disposes the active song player instance.
@@ -48,7 +65,7 @@ export const useSong = (): UseSongResult => {
   }, []);
 
   /**
-   * Loads a song by id and prepares a player for follow-along mode.
+   * Loads a song by id and prepares a player in the current mode.
    * @param id - Song metadata id from the catalogue.
    */
   const selectSong = useCallback(
@@ -62,7 +79,7 @@ export const useSong = (): UseSongResult => {
       activeSelectionRef.current = id;
       destroyPlayer();
       setSelectedSong(null);
-      setPlaybackState(INITIAL_PLAYBACK_STATE);
+      setPlaybackState({ ...INITIAL_PLAYBACK_STATE, mode: modeRef.current });
       setSongLoadError(null);
 
       void loadSong(metadata)
@@ -72,7 +89,13 @@ export const useSong = (): UseSongResult => {
           }
 
           setSelectedSong(parsedSong);
-          playerRef.current = new SongPlayer(parsedSong, setPlaybackState);
+          const player = new SongPlayer({
+            onStateChange: setPlaybackState,
+            callbacks: { onAutoNoteStart, onAutoNoteEnd },
+          });
+          player.load(parsedSong);
+          player.setMode(modeRef.current);
+          playerRef.current = player;
         })
         .catch((error: unknown) => {
           if (activeSelectionRef.current !== id) {
@@ -81,14 +104,14 @@ export const useSong = (): UseSongResult => {
 
           activeSelectionRef.current = null;
           setSelectedSong(null);
-          setPlaybackState(INITIAL_PLAYBACK_STATE);
+          setPlaybackState({ ...INITIAL_PLAYBACK_STATE, mode: modeRef.current });
           const message =
             error instanceof Error ? error.message : 'Unknown error';
           setSongLoadError(`Failed to load "${metadata.title}": ${message}`);
           console.error(`Failed to load song "${metadata.title}":`, error);
         });
     },
-    [destroyPlayer],
+    [destroyPlayer, onAutoNoteStart, onAutoNoteEnd],
   );
 
   useEffect(() => {
@@ -98,7 +121,26 @@ export const useSong = (): UseSongResult => {
   }, [destroyPlayer]);
 
   /**
-   * Starts or resumes follow-along playback for the selected song.
+   * Switches playback mode. Ignored while playback is active — the UI should
+   * disable mode controls in that state, and the underlying player also
+   * guards against changing mode mid-playback.
+   * @param mode - 'follow' to wait for keypresses, 'play' to auto-play.
+   */
+  const setMode = useCallback(
+    (mode: SongPlaybackMode): void => {
+      if (playbackState.isPlaying || playbackState.isPaused) {
+        return;
+      }
+
+      modeRef.current = mode;
+      playerRef.current?.setMode(mode);
+      setPlaybackState((previous) => ({ ...previous, mode }));
+    },
+    [playbackState.isPlaying, playbackState.isPaused],
+  );
+
+  /**
+   * Starts or resumes playback for the selected song.
    */
   const startPlayback = useCallback((): void => {
     try {
@@ -109,7 +151,7 @@ export const useSong = (): UseSongResult => {
   }, []);
 
   /**
-   * Pauses follow-along playback without resetting progress.
+   * Pauses playback without resetting progress.
    */
   const pausePlayback = useCallback((): void => {
     try {
@@ -120,7 +162,7 @@ export const useSong = (): UseSongResult => {
   }, []);
 
   /**
-   * Stops follow-along playback and resets player position.
+   * Stops playback and resets player position.
    */
   const stopPlayback = useCallback((): void => {
     try {
@@ -131,7 +173,7 @@ export const useSong = (): UseSongResult => {
   }, []);
 
   /**
-   * Forwards a played note to the active song player for wait-for-correct-key mode.
+   * Forwards a played note to the active song player for follow-along mode.
    * @param note - Scientific notation note name, e.g. "C4".
    */
   const handleNoteInput = useCallback((note: NoteName): void => {
@@ -147,6 +189,8 @@ export const useSong = (): UseSongResult => {
     selectedSong,
     selectSong,
     playbackState,
+    mode: playbackState.mode,
+    setMode,
     startPlayback,
     pausePlayback,
     stopPlayback,

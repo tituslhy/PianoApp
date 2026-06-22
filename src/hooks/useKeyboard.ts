@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { KEY_TO_NOTE } from '../audio/keyMap';
 import type { NoteName } from '../types';
 
 /** Options for wiring physical keyboard input to note callbacks. */
@@ -8,6 +7,7 @@ export interface UseKeyboardOptions {
   enabled: boolean;
   onNoteDown: (note: NoteName) => void;
   onNoteUp: (note: NoteName) => void;
+  keyMap: Record<string, NoteName>;
 }
 
 /** Pressed-note tracking plus helpers for on-screen key sync. */
@@ -28,6 +28,7 @@ export const useKeyboard = ({
   enabled,
   onNoteDown,
   onNoteUp,
+  keyMap,
 }: UseKeyboardOptions): UseKeyboardResult => {
   const [pressedNotes, setPressedNotes] = useState<Set<NoteName>>(
     () => new Set(),
@@ -35,6 +36,7 @@ export const useKeyboard = ({
   const pressedNotesRef = useRef<Set<NoteName>>(pressedNotes);
   const onNoteDownRef = useRef(onNoteDown);
   const onNoteUpRef = useRef(onNoteUp);
+  const keyMapRef = useRef(keyMap);
 
   useEffect(() => {
     pressedNotesRef.current = pressedNotes;
@@ -44,6 +46,10 @@ export const useKeyboard = ({
     onNoteDownRef.current = onNoteDown;
     onNoteUpRef.current = onNoteUp;
   }, [onNoteDown, onNoteUp]);
+
+  useEffect(() => {
+    keyMapRef.current = keyMap;
+  }, [keyMap]);
 
   /**
    * Returns whether a note is currently held down.
@@ -119,7 +125,7 @@ export const useKeyboard = ({
         return;
       }
 
-      const note = KEY_TO_NOTE[event.key.toLowerCase()];
+      const note = keyMapRef.current[event.key.toLowerCase()];
       if (!note) {
         return;
       }
@@ -138,7 +144,7 @@ export const useKeyboard = ({
      * @param event - Browser keyboard event.
      */
     const handleKeyUp = (event: KeyboardEvent): void => {
-      const note = KEY_TO_NOTE[event.key.toLowerCase()];
+      const note = keyMapRef.current[event.key.toLowerCase()];
       if (!note) {
         return;
       }

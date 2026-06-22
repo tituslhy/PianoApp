@@ -1,82 +1,133 @@
 import type { NoteName, PianoKeyDefinition } from '../types/index.ts';
 
-/** Keyboard key → note mapping (single source of truth). */
-export const KEY_TO_NOTE: Record<string, NoteName> = {
-  // Octave 4 — white keys
-  a: 'C4',
-  s: 'D4',
-  d: 'E4',
-  f: 'F4',
-  g: 'G4',
-  h: 'A4',
-  j: 'B4',
-  // Octave 4 — black keys
-  w: 'C#4',
-  e: 'D#4',
-  t: 'F#4',
-  y: 'G#4',
-  u: 'A#4',
-  // Octave 5 — white keys
-  k: 'C5',
-  l: 'D5',
-  ';': 'E5',
-  "'": 'F5',
-  '\\': 'G5',
-  z: 'A5',
-  x: 'B5',
-  // Octave 5 — black keys
-  o: 'C#5',
-  p: 'D#5',
-  '[': 'F#5',
-  ']': 'G#5',
-  '/': 'A#5',
-  // C6 (extends range by one note)
-  c: 'C6',
+/** Minimum base octave for the movable 25-key hotkey window. */
+export const MIN_BASE_OCTAVE = 1;
+
+/** Maximum base octave for the movable 25-key hotkey window. */
+export const MAX_BASE_OCTAVE = 6;
+
+/** Default base octave — matches the keyboard's original C4–C6 hotkey range. */
+export const DEFAULT_BASE_OCTAVE = 4;
+
+/**
+ * Keyboard key → semitone offset from the current base octave's C (0–24).
+ * Fixed regardless of octave shift; only the resolved note name moves.
+ */
+const KEY_OFFSETS: Record<string, number> = {
+  // White keys, octave 0 of the window
+  a: 0,
+  s: 2,
+  d: 4,
+  f: 5,
+  g: 7,
+  h: 9,
+  j: 11,
+  // Black keys, octave 0 of the window
+  w: 1,
+  e: 3,
+  t: 6,
+  y: 8,
+  u: 10,
+  // White keys, octave 1 of the window
+  k: 12,
+  l: 14,
+  ';': 16,
+  "'": 17,
+  '\\': 19,
+  z: 21,
+  x: 23,
+  // Black keys, octave 1 of the window
+  o: 13,
+  p: 15,
+  '[': 18,
+  ']': 20,
+  '/': 22,
+  // C, octave 2 of the window (extends range by one note)
+  c: 24,
 };
 
-/** Chromatic layout from C4 through C6 for the on-screen keyboard. */
-const LAYOUT_NOTES: readonly NoteName[] = [
-  'C4',
-  'C#4',
-  'D4',
-  'D#4',
-  'E4',
-  'F4',
-  'F#4',
-  'G4',
-  'G#4',
-  'A4',
-  'A#4',
-  'B4',
-  'C5',
-  'C#5',
-  'D5',
-  'D#5',
-  'E5',
-  'F5',
-  'F#5',
-  'G5',
-  'G#5',
-  'A5',
-  'A#5',
-  'B5',
-  'C6',
-];
+const PITCH_CLASSES = [
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#',
+  'A',
+  'A#',
+  'B',
+] as const;
 
 /**
- * Reverse lookup built from {@link KEYBOARD_TO_NOTE}.
- * Maps each note to its primary keyboard key.
+ * Builds a chromatic note sequence from the C of `startOctave` through the C of `endOctave`.
+ * @param startOctave - Octave of the first note (a C).
+ * @param endOctave - Octave of the final note (a C).
+ * @returns Chromatic note names in ascending order.
  */
-export const noteToKeyboardKey: Record<NoteName, string> = Object.fromEntries(
-  Object.entries(KEY_TO_NOTE).map(([key, note]) => [note, key]),
-) as Record<NoteName, string>;
+function buildChromaticRange(startOctave: number, endOctave: number): NoteName[] {
+  const notes: NoteName[] = [];
+
+  for (let octave = startOctave; octave <= endOctave; octave += 1) {
+    for (const pitch of PITCH_CLASSES) {
+      if (octave === endOctave && pitch !== 'C') {
+        break;
+      }
+      notes.push(`${pitch}${octave}`);
+    }
+  }
+
+  return notes;
+}
+
+/** Chromatic layout from C1 through C8 for the on-screen keyboard — covers the full song catalogue's note range. */
+const LAYOUT_NOTES: readonly NoteName[] = buildChromaticRange(1, 8);
 
 /**
- * Returns a copy of the keyboard-to-note mapping.
+ * Resolves a semitone offset (0–24) against a base octave into a note name.
+ * @param baseOctave - Octave of the window's lowest C.
+ * @param offset - Semitone offset from that C.
+ * @returns Note in scientific notation, e.g. "F#5".
+ */
+function resolveNote(baseOctave: number, offset: number): NoteName {
+  const pitch = PITCH_CLASSES[offset % 12];
+  const octave = baseOctave + Math.floor(offset / 12);
+  return `${pitch}${octave}`;
+}
+
+/**
+ * Clamps a candidate base octave to the keyboard's valid shift range.
+ * @param baseOctave - Candidate base octave.
+ * @returns Clamped base octave within [MIN_BASE_OCTAVE, MAX_BASE_OCTAVE].
+ */
+export function clampBaseOctave(baseOctave: number): number {
+  return Math.min(MAX_BASE_OCTAVE, Math.max(MIN_BASE_OCTAVE, baseOctave));
+}
+
+/**
+ * Builds the keyboard key → note map for the given base octave.
+ * @param baseOctave - Octave of the 25-key window's lowest C.
  * @returns Record of keyboard key strings to scientific note names.
  */
-export function getKeyMap(): Record<string, NoteName> {
-  return { ...KEY_TO_NOTE };
+export function buildKeyToNote(baseOctave: number): Record<string, NoteName> {
+  const clamped = clampBaseOctave(baseOctave);
+  return Object.fromEntries(
+    Object.entries(KEY_OFFSETS).map(([key, offset]) => [key, resolveNote(clamped, offset)]),
+  );
+}
+
+/**
+ * Builds the note → keyboard key reverse lookup for the given base octave.
+ * @param baseOctave - Octave of the 25-key window's lowest C.
+ * @returns Record of scientific note names to their keyboard key.
+ */
+function buildNoteToKeyboardKey(baseOctave: number): Record<NoteName, string> {
+  const keyToNote = buildKeyToNote(baseOctave);
+  return Object.fromEntries(
+    Object.entries(keyToNote).map(([key, note]) => [note, key]),
+  ) as Record<NoteName, string>;
 }
 
 /**
@@ -99,10 +150,14 @@ function isBlackNote(note: NoteName): boolean {
 }
 
 /**
- * Returns piano key definitions for every key from C4 through C6.
+ * Returns piano key definitions for every key from C1 through C8, with keyboard
+ * shortcut badges resolved for the current base octave.
+ * @param baseOctave - Octave of the 25-key hotkey window's lowest C.
  * @returns Ordered array suitable for rendering the keyboard layout.
  */
-export function getKeyboardLayout(): PianoKeyDefinition[] {
+export function getKeyboardLayout(baseOctave: number): PianoKeyDefinition[] {
+  const noteToKeyboardKey = buildNoteToKeyboardKey(baseOctave);
+
   return LAYOUT_NOTES.map((note) => ({
     note,
     isBlack: isBlackNote(note),

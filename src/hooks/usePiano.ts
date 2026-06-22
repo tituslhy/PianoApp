@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 
-import { getKeyboardLayout } from '../audio/keyMap';
+import { buildKeyToNote, getKeyboardLayout } from '../audio/keyMap';
 import type {
   AudioEngineState,
   KeyboardInteractionHandlers,
@@ -8,16 +8,20 @@ import type {
   PianoKeyDefinition,
   ParsedSong,
   SongMetadata,
+  SongPlaybackMode,
   SongPlaybackState,
 } from '../types';
 import { useAudio } from './useAudio';
 import { useKeyboard } from './useKeyboard';
+import { useOctaveShift } from './useOctaveShift';
 import { useSong } from './useSong';
 
 /** Combined piano interaction surface for the root app component. */
 export interface UsePianoResult {
   pressedNotes: Set<NoteName>;
-  highlightedNote: NoteName | null;
+  highlightedNotes: NoteName[];
+  mode: SongPlaybackMode;
+  setMode: (mode: SongPlaybackMode) => void;
   keyboardLayout: PianoKeyDefinition[];
   handlers: KeyboardInteractionHandlers;
   songs: SongMetadata[];
@@ -30,6 +34,11 @@ export interface UsePianoResult {
   audioState: AudioEngineState;
   ensureAudioReady: () => Promise<void>;
   songLoadError: string | null;
+  baseOctave: number;
+  canShiftOctaveDown: boolean;
+  canShiftOctaveUp: boolean;
+  shiftOctaveDown: () => void;
+  shiftOctaveUp: () => void;
 }
 
 /**
@@ -44,12 +53,21 @@ export const usePiano = (): UsePianoResult => {
     selectedSong,
     selectSong,
     playbackState,
+    mode,
+    setMode,
     startPlayback,
     pausePlayback,
     stopPlayback,
     handleNoteInput,
     songLoadError,
-  } = useSong();
+  } = useSong({ onAutoNoteStart: playNote, onAutoNoteEnd: releaseNote });
+  const {
+    baseOctave,
+    canShiftDown: canShiftOctaveDown,
+    canShiftUp: canShiftOctaveUp,
+    shiftDown: shiftOctaveDown,
+    shiftUp: shiftOctaveUp,
+  } = useOctaveShift();
 
   /**
    * Plays a note after ensuring the audio engine has started.
@@ -88,13 +106,16 @@ export const usePiano = (): UsePianoResult => {
     [releaseNote],
   );
 
+  const keyMap = useMemo(() => buildKeyToNote(baseOctave), [baseOctave]);
+
   const { pressedNotes, trackNoteDown, trackNoteUp } = useKeyboard({
     enabled: true,
     onNoteDown: handleNoteDown,
     onNoteUp: handleNoteUp,
+    keyMap,
   });
 
-  const keyboardLayout = useMemo(() => getKeyboardLayout(), []);
+  const keyboardLayout = useMemo(() => getKeyboardLayout(baseOctave), [baseOctave]);
 
   const handlers: KeyboardInteractionHandlers = useMemo(
     () => ({
@@ -118,7 +139,9 @@ export const usePiano = (): UsePianoResult => {
 
   return {
     pressedNotes,
-    highlightedNote: playbackState.highlightedNote,
+    highlightedNotes: playbackState.highlightedNotes,
+    mode,
+    setMode,
     keyboardLayout,
     handlers,
     songs,
@@ -131,5 +154,10 @@ export const usePiano = (): UsePianoResult => {
     audioState,
     ensureAudioReady,
     songLoadError,
+    baseOctave,
+    canShiftOctaveDown,
+    canShiftOctaveUp,
+    shiftOctaveDown,
+    shiftOctaveUp,
   };
 };
