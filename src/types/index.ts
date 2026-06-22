@@ -8,7 +8,7 @@ export type SongDifficulty = 'easy' | 'medium' | 'hard';
 export type AudioEngineState = 'idle' | 'loading' | 'ready' | 'error';
 
 /** Visual state applied to a piano key. */
-export type KeyVisualState = 'idle' | 'pressed' | 'highlighted';
+export type KeyVisualState = 'idle' | 'pressed' | 'highlighted' | 'auto-playing';
 
 /** Static metadata for a follow-along song. */
 export interface SongMetadata {
@@ -48,11 +48,15 @@ export interface KeyboardInteractionHandlers {
   onKeyUp: (note: NoteName) => void;
 }
 
-/** Follow-along playback state exposed to the UI. */
+/** Song playback mode: wait for the correct key, or auto-play the song itself. */
+export type SongPlaybackMode = 'follow' | 'play';
+
+/** Playback state exposed to the UI, shared by follow-along and play-along modes. */
 export interface SongPlaybackState {
+  mode: SongPlaybackMode;
   isPlaying: boolean;
   isPaused: boolean;
   currentNoteIndex: number;
-  highlightedNote: NoteName | null;
+  highlightedNotes: NoteName[];
   progress: number;
 }
