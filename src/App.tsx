@@ -15,7 +15,9 @@ import { usePiano } from './hooks/usePiano';
 export function App() {
   const {
     pressedNotes,
-    highlightedNote,
+    highlightedNotes,
+    mode,
+    setMode, // eslint-disable-line @typescript-eslint/no-unused-vars
     keyboardLayout,
     handlers,
     songs,
@@ -70,7 +72,8 @@ export function App() {
       <Keyboard
         keys={keyboardLayout}
         pressedNotes={pressedNotes}
-        highlightedNote={highlightedNote}
+        highlightedNotes={highlightedNotes}
+        mode={mode}
         handlers={handlers}
       />
 

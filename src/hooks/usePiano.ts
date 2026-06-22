@@ -8,6 +8,7 @@ import type {
   PianoKeyDefinition,
   ParsedSong,
   SongMetadata,
+  SongPlaybackMode,
   SongPlaybackState,
 } from '../types';
 import { useAudio } from './useAudio';
@@ -18,7 +19,9 @@ import { useSong } from './useSong';
 /** Combined piano interaction surface for the root app component. */
 export interface UsePianoResult {
   pressedNotes: Set<NoteName>;
-  highlightedNote: NoteName | null;
+  highlightedNotes: NoteName[];
+  mode: SongPlaybackMode;
+  setMode: (mode: SongPlaybackMode) => void;
   keyboardLayout: PianoKeyDefinition[];
   handlers: KeyboardInteractionHandlers;
   songs: SongMetadata[];
@@ -50,12 +53,14 @@ export const usePiano = (): UsePianoResult => {
     selectedSong,
     selectSong,
     playbackState,
+    mode,
+    setMode,
     startPlayback,
     pausePlayback,
     stopPlayback,
     handleNoteInput,
     songLoadError,
-  } = useSong();
+  } = useSong({ onAutoNoteStart: playNote, onAutoNoteEnd: releaseNote });
   const {
     baseOctave,
     canShiftDown: canShiftOctaveDown,
@@ -134,7 +139,9 @@ export const usePiano = (): UsePianoResult => {
 
   return {
     pressedNotes,
-    highlightedNote: playbackState.highlightedNote,
+    highlightedNotes: playbackState.highlightedNotes,
+    mode,
+    setMode,
     keyboardLayout,
     handlers,
     songs,

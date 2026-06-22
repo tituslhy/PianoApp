@@ -2,8 +2,10 @@ import type { CSSProperties } from 'react';
 
 import type {
   KeyboardInteractionHandlers,
+  KeyVisualState,
   NoteName,
   PianoKeyDefinition,
+  SongPlaybackMode,
 } from '../types';
 
 import { useKeyboardWidth } from '../hooks/useKeyboardWidth';
@@ -13,7 +15,8 @@ import { PianoKey } from './PianoKey';
 export interface KeyboardProps {
   keys: PianoKeyDefinition[];
   pressedNotes: Set<NoteName>;
-  highlightedNote: NoteName | null;
+  highlightedNotes: NoteName[];
+  mode: SongPlaybackMode;
   handlers: KeyboardInteractionHandlers;
 }
 
@@ -21,19 +24,21 @@ export interface KeyboardProps {
  * Resolves the visual state for a key from pressed and highlight sets.
  * @param note - Scientific notation note name.
  * @param pressedNotes - Currently held notes.
- * @param highlightedNote - Follow-along target note, if any.
+ * @param highlightedNotes - Follow-along target notes.
+ * @param mode - Playback mode determining highlight style.
  * @returns Visual state for the key component.
  */
 function getKeyVisualState(
   note: NoteName,
   pressedNotes: Set<NoteName>,
-  highlightedNote: NoteName | null,
-): 'idle' | 'pressed' | 'highlighted' {
+  highlightedNotes: NoteName[],
+  mode: SongPlaybackMode,
+): KeyVisualState {
   if (pressedNotes.has(note)) {
     return 'pressed';
   }
-  if (highlightedNote === note) {
-    return 'highlighted';
+  if (highlightedNotes.includes(note)) {
+    return mode === 'play' ? 'auto-playing' : 'highlighted';
   }
   return 'idle';
 }
@@ -71,7 +76,8 @@ function countWhiteKeysBefore(keys: PianoKeyDefinition[]): Map<NoteName, number>
 export function Keyboard({
   keys,
   pressedNotes,
-  highlightedNote,
+  highlightedNotes,
+  mode,
   handlers,
 }: KeyboardProps) {
   const whiteKeys = keys.filter((key) => !key.isBlack);
@@ -101,7 +107,8 @@ export function Keyboard({
               visualState={getKeyVisualState(
                 key.note,
                 pressedNotes,
-                highlightedNote,
+                highlightedNotes,
+                mode,
               )}
               onPointerDown={handlers.onKeyDown}
               onPointerUp={handlers.onKeyUp}
@@ -128,7 +135,8 @@ export function Keyboard({
                   visualState={getKeyVisualState(
                     key.note,
                     pressedNotes,
-                    highlightedNote,
+                    highlightedNotes,
+                    mode,
                   )}
                   onPointerDown={handlers.onKeyDown}
                   onPointerUp={handlers.onKeyUp}
