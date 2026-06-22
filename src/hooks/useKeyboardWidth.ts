@@ -8,9 +8,6 @@ const MIN_WHITE_KEY_WIDTH = 40;
 /** Maximum white key width in pixels — avoids absurdly large keys on wide monitors. */
 const MAX_WHITE_KEY_WIDTH = 68;
 
-/** Number of white keys rendered (C4 through C6). */
-const WHITE_KEY_COUNT = 15;
-
 /** Horizontal padding (both sides) of the keyboard surface, in pixels. */
 const SURFACE_PADDING = 32;
 
@@ -23,9 +20,10 @@ export interface UseKeyboardWidthResult {
 /**
  * Measures the keyboard's scroll container and computes a white key width that
  * fills as much of the available space as possible, clamped to a sensible range.
+ * @param whiteKeyCount - Number of white keys currently rendered.
  * @returns A ref to attach to the scroll container, and the computed key width.
  */
-export function useKeyboardWidth(): UseKeyboardWidthResult {
+export function useKeyboardWidth(whiteKeyCount: number): UseKeyboardWidthResult {
   const containerRef = useRef<HTMLDivElement>(null);
   const [whiteKeyWidth, setWhiteKeyWidth] = useState(MIN_WHITE_KEY_WIDTH);
 
@@ -39,7 +37,7 @@ export function useKeyboardWidth(): UseKeyboardWidthResult {
       const available = containerWidth - SURFACE_PADDING;
       const next = Math.min(
         MAX_WHITE_KEY_WIDTH,
-        Math.max(MIN_WHITE_KEY_WIDTH, Math.floor(available / WHITE_KEY_COUNT)),
+        Math.max(MIN_WHITE_KEY_WIDTH, Math.floor(available / whiteKeyCount)),
       );
       setWhiteKeyWidth(next);
     };
@@ -55,7 +53,7 @@ export function useKeyboardWidth(): UseKeyboardWidthResult {
     observer.observe(container);
 
     return () => observer.disconnect();
-  }, []);
+  }, [whiteKeyCount]);
 
   return { containerRef, whiteKeyWidth };
 }

@@ -38,31 +38,30 @@ function getKeyVisualState(
   return 'idle';
 }
 
-/** Tailwind left-offset classes for black keys (15 white keys, fixed layout). */
-const BLACK_KEY_LEFT_CLASS: Record<string, string> = {
-  'C#4': 'left-[4.5%]',
-  'D#4': 'left-[11%]',
-  'F#4': 'left-[24%]',
-  'G#4': 'left-[31%]',
-  'A#4': 'left-[38%]',
-  'C#5': 'left-[51%]',
-  'D#5': 'left-[58%]',
-  'F#5': 'left-[71%]',
-  'G#5': 'left-[78%]',
-  'A#5': 'left-[85%]',
-};
+/** Fraction of a white key's width that a black key sits left of the next white-key boundary. */
+const BLACK_KEY_BOUNDARY_OFFSET = 1 / 3;
 
 /**
- * Returns the Tailwind class for positioning a black key.
- * @param note - Black key note name.
- * @returns Tailwind left-offset utility class.
+ * Counts how many white keys precede each key in layout order.
+ * @param keys - Ordered piano key definitions.
+ * @returns Map from note name to the number of preceding white keys.
  */
-function getBlackKeyLeftClass(note: NoteName): string {
-  return BLACK_KEY_LEFT_CLASS[note] ?? 'left-0';
+function countWhiteKeysBefore(keys: PianoKeyDefinition[]): Map<NoteName, number> {
+  const counts = new Map<NoteName, number>();
+  let whiteCount = 0;
+
+  for (const key of keys) {
+    counts.set(key.note, whiteCount);
+    if (!key.isBlack) {
+      whiteCount += 1;
+    }
+  }
+
+  return counts;
 }
 
 /**
- * Renders a two-octave piano keyboard with white and black keys.
+ * Renders the on-screen piano keyboard with white and black keys.
  * @param props - Layout, interaction handlers, and visual state.
  * @returns Responsive piano keyboard component.
  */
@@ -74,7 +73,8 @@ export function Keyboard({
 }: KeyboardProps) {
   const whiteKeys = keys.filter((key) => !key.isBlack);
   const blackKeys = keys.filter((key) => key.isBlack);
-  const { containerRef, whiteKeyWidth } = useKeyboardWidth();
+  const whiteKeysBeforeByNote = countWhiteKeysBefore(keys);
+  const { containerRef, whiteKeyWidth } = useKeyboardWidth(whiteKeys.length);
 
   return (
     <div ref={containerRef} className="w-full overflow-x-auto pb-2">
@@ -106,26 +106,31 @@ export function Keyboard({
         </div>
 
         <div className="pointer-events-none absolute inset-x-4 top-4 bottom-4">
-          {blackKeys.map((key) => (
-            <div
-              key={key.note}
-              className={`pointer-events-auto absolute top-0 -translate-x-1/2 ${getBlackKeyLeftClass(key.note)}`}
-            >
-              <PianoKey
-                note={key.note}
-                isBlack
-                keyboardKey={key.keyboardKey}
-                visualState={getKeyVisualState(
-                  key.note,
-                  pressedNotes,
-                  highlightedNote,
-                )}
-                onPointerDown={handlers.onKeyDown}
-                onPointerUp={handlers.onKeyUp}
-                onPointerLeave={handlers.onKeyUp}
-              />
-            </div>
-          ))}
+          {blackKeys.map((key) => {
+            const whiteKeysBefore = whiteKeysBeforeByNote.get(key.note) ?? 0;
+            const leftOffset = whiteKeysBefore - BLACK_KEY_BOUNDARY_OFFSET;
+            return (
+              <div
+                key={key.note}
+                className="pointer-events-auto absolute top-0 -translate-x-1/2"
+                style={{ left: `calc(var(--key-w) * ${leftOffset})` }}
+              >
+                <PianoKey
+                  note={key.note}
+                  isBlack
+                  keyboardKey={key.keyboardKey}
+                  visualState={getKeyVisualState(
+                    key.note,
+                    pressedNotes,
+                    highlightedNote,
+                  )}
+                  onPointerDown={handlers.onKeyDown}
+                  onPointerUp={handlers.onKeyUp}
+                  onPointerLeave={handlers.onKeyUp}
+                />
+              </div>
+            );
+          })}
         </div>
         </div>
       </div>

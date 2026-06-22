@@ -16,6 +16,13 @@ export const SONGS: SongMetadata[] = [
     tempo: 72,
     midiPath: '/songs/fur-elise.mid',
   },
+  {
+    id: 'la-campanella',
+    title: 'La Campanella',
+    difficulty: 'hard',
+    tempo: 120,
+    midiPath: '/songs/la-campanella.mid',
+  },
 ];
 
 /**

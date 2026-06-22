@@ -34,34 +34,44 @@ export const KEY_TO_NOTE: Record<string, NoteName> = {
   c: 'C6',
 };
 
-/** Chromatic layout from C4 through C6 for the on-screen keyboard. */
-const LAYOUT_NOTES: readonly NoteName[] = [
-  'C4',
-  'C#4',
-  'D4',
-  'D#4',
-  'E4',
-  'F4',
-  'F#4',
-  'G4',
-  'G#4',
-  'A4',
-  'A#4',
-  'B4',
-  'C5',
-  'C#5',
-  'D5',
-  'D#5',
-  'E5',
-  'F5',
-  'F#5',
-  'G5',
-  'G#5',
-  'A5',
-  'A#5',
-  'B5',
-  'C6',
-];
+const PITCH_CLASSES = [
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#',
+  'A',
+  'A#',
+  'B',
+] as const;
+
+/**
+ * Builds a chromatic note sequence from the C of `startOctave` through the C of `endOctave`.
+ * @param startOctave - Octave of the first note (a C).
+ * @param endOctave - Octave of the final note (a C).
+ * @returns Chromatic note names in ascending order.
+ */
+function buildChromaticRange(startOctave: number, endOctave: number): NoteName[] {
+  const notes: NoteName[] = [];
+
+  for (let octave = startOctave; octave <= endOctave; octave += 1) {
+    for (const pitch of PITCH_CLASSES) {
+      if (octave === endOctave && pitch !== 'C') {
+        break;
+      }
+      notes.push(`${pitch}${octave}`);
+    }
+  }
+
+  return notes;
+}
+
+/** Chromatic layout from C1 through C8 for the on-screen keyboard — covers the full song catalogue's note range. */
+const LAYOUT_NOTES: readonly NoteName[] = buildChromaticRange(1, 8);
 
 /**
  * Reverse lookup built from {@link KEYBOARD_TO_NOTE}.
