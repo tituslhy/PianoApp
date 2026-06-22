@@ -17,8 +17,7 @@ export function App() {
     pressedNotes,
     highlightedNotes,
     mode,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- wired into PlaybackControls in Task 13
-    setMode: _setMode,
+    setMode,
     keyboardLayout,
     handlers,
     songs,
@@ -49,6 +48,15 @@ export function App() {
     },
     [selectSong, ensureAudioReady],
   );
+
+  /**
+   * Ensures audio is ready before starting playback (for play-along mode).
+   */
+  const handlePlay = useCallback((): void => {
+    void ensureAudioReady().then(() => {
+      startPlayback();
+    });
+  }, [ensureAudioReady, startPlayback]);
 
   return (
     <div className="flex min-h-full flex-col items-center gap-8 px-4 py-8 sm:px-6 sm:py-12">
@@ -85,9 +93,11 @@ export function App() {
       />
 
       <PlaybackControls
+        mode={mode}
+        onModeChange={setMode}
         isPlaying={playbackState.isPlaying}
         isPaused={playbackState.isPaused}
-        onPlay={startPlayback}
+        onPlay={handlePlay}
         onPause={pausePlayback}
         onStop={stopPlayback}
         songTitle={selectedSong?.metadata.title ?? null}
