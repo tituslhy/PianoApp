@@ -1,8 +1,8 @@
 import * as Tone from 'tone';
 import type { AudioEngineState, NoteName } from '../types/index.ts';
 
-/** CDN base path for Salamander Grand Piano samples. */
-const SALAMANDER_BASE_URL = 'https://tonejs.github.io/audio/salamander/';
+/** Local base path for vendored Salamander Grand Piano samples (served from public/). */
+const SALAMANDER_BASE_URL = '/audio/salamander/';
 
 /** Sparse sample map — Tone.Sampler repitches to fill gaps between notes. */
 const SAMPLER_URLS: Record<string, string> = {
